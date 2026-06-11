@@ -67,3 +67,31 @@ Log record (one JSON line to stdout):
 a route template, not the raw URL. Mirror this exact key set in other languages
 (`@etamong-lab/httperr` for TS, a `tracing` snippet for Rust) so a quoted ref maps 1:1
 to a Loki lookup in any app.
+
+## Request correlation (X-Request-Id)
+
+By default each `Fail`/`Ref` mints its own `ref`, so the error line is the only place
+that id appears. Install the `RequestID` middleware to give the **whole request** one
+id and thread it through every log line:
+
+```go
+mux := http.NewServeMux()
+// … register handlers …
+srv := httperr.RequestID(accessLog(mux)) // outermost, before access logging
+```
+
+`RequestID` reuses a trusted inbound `X-Request-Id` (so the id spans services and the
+front proxy) or mints a fresh one, stores it in the request context, and echoes it on
+the response as `X-Request-Id`. `Responder.emit` then reuses it as the error `ref`, so
+a single id ties together:
+
+- the `X-Request-Id` header the client sees,
+- the `access` log line — add `"ref": httperr.ReqID(r.Context())`,
+- the `audit` log line — add `"ref": httperr.ReqID(ctx)`,
+- the `error` line (automatic).
+
+Read it anywhere downstream with `httperr.ReqID(r.Context())`; it returns `""` when the
+middleware isn't installed, and `Fail`/`Ref` then fall back to a fresh per-error ref —
+so adopting this is non-breaking. One quoted id now resolves a request's whole
+access → audit → error trail in Grafana. See
+[planning#201](https://gitlab.com/etamong-lab/planning/-/issues/201).
