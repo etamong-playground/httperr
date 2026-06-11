@@ -1,0 +1,32 @@
+{
+  "name": "@etamong-lab/httperr",
+  "version": "0.1.0",
+  "description": "etamong-lab cross-app error convention (TS/JS): clean {error,ref} responses + a structured JSON log line joined by an 8-hex ref. Mirrors the Go lib gitlab.com/etamong-lab/shared/libs/httperr.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3"
+  },
+  "publishConfig": {
+    "@etamong-lab:registry": "https://gitlab.com/api/v4/projects/83106183/packages/npm/"
+  },
+  "license": "UNLICENSED"
+}

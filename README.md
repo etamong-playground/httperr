@@ -1,6 +1,14 @@
-# @etamong-lab/httperr (Go)
+# httperr — etamong-lab cross-app error convention
 
-The etamong-lab cross-app **error convention** for Go HTTP services. A handler reports
+This repo holds the convention in **two stacks** (same contract, same log line):
+
+- **Go** (this README): `go get gitlab.com/etamong-lab/shared/libs/httperr` — see below.
+- **TypeScript/JS**: `@etamong-lab/httperr`, published from [`ts/`](ts/) (Node, Cloudflare
+  Workers, browser). Use `fail()` server-side and `formatError()` in frontends.
+
+---
+
+The Go library, for Go HTTP services. A handler reports
 a failure once; the helper writes a clean, non-leaky `{"error","ref"}` response to the
 client **and** logs one structured JSON record server-side under the same 8-hex `ref`.
 
