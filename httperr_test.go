@@ -2,6 +2,7 @@ package httperr
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -138,5 +139,89 @@ func TestNilUserAndErr(t *testing.T) {
 	got := decodeLog(t, buf.Bytes())
 	if got["user"] != "-" || got["err"] != "" {
 		t.Fatalf("nil user/err handling: %v", got)
+	}
+}
+
+func TestRequestIDMintsAndEchoes(t *testing.T) {
+	var gotID string
+	h := RequestID(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotID = ReqID(r.Context())
+	}))
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/x", nil))
+	if !refRe.MatchString(gotID) {
+		t.Fatalf("minted ReqID %q is not 8-hex", gotID)
+	}
+	if echoed := rec.Header().Get(RequestIDHeader); echoed != gotID {
+		t.Fatalf("X-Request-Id %q != ReqID %q", echoed, gotID)
+	}
+}
+
+func TestRequestIDTrustsInbound(t *testing.T) {
+	const inbound = "deadbeefcafe0001"
+	var gotID string
+	h := RequestID(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotID = ReqID(r.Context())
+	}))
+	req := httptest.NewRequest(http.MethodGet, "/x", nil)
+	req.Header.Set(RequestIDHeader, inbound)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if gotID != inbound {
+		t.Fatalf("ReqID = %q, want inbound %q", gotID, inbound)
+	}
+	if rec.Header().Get(RequestIDHeader) != inbound {
+		t.Fatalf("echoed X-Request-Id != inbound")
+	}
+}
+
+func TestReqIDEmptyWithoutMiddleware(t *testing.T) {
+	if got := ReqID(context.Background()); got != "" {
+		t.Fatalf("ReqID without middleware = %q, want empty", got)
+	}
+}
+
+// With RequestID installed, the error ref, the logged ref, the response body ref,
+// and the client's X-Request-Id are all the same correlation id.
+func TestEmitReusesRequestID(t *testing.T) {
+	var buf bytes.Buffer
+	resp := &Responder{Log: NewLogger(&buf), App: "draw"}
+	const inbound = "0a1b2c3d4e5f6071"
+
+	var ref string
+	chain := RequestID(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ref = resp.Fail(w, r, http.StatusInternalServerError, "안돼요", errors.New("boom"))
+	}))
+	req := httptest.NewRequest(http.MethodGet, "/api/x", nil)
+	req.Header.Set(RequestIDHeader, inbound)
+	rec := httptest.NewRecorder()
+	chain.ServeHTTP(rec, req)
+
+	if ref != inbound {
+		t.Fatalf("returned ref %q != request id %q", ref, inbound)
+	}
+	if logged := decodeLog(t, buf.Bytes()); logged["ref"] != inbound {
+		t.Fatalf("log ref %v != request id %q", logged["ref"], inbound)
+	}
+	if rec.Header().Get(RequestIDHeader) != inbound {
+		t.Fatalf("X-Request-Id %q != %q", rec.Header().Get(RequestIDHeader), inbound)
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("body not JSON: %v", err)
+	}
+	if body["ref"] != inbound {
+		t.Fatalf("body ref %v != request id %q", body["ref"], inbound)
+	}
+}
+
+func TestEmitFallsBackWithoutMiddleware(t *testing.T) {
+	var buf bytes.Buffer
+	resp := &Responder{Log: NewLogger(&buf), App: "draw"}
+	req := httptest.NewRequest(http.MethodGet, "/api/x", nil) // no RequestID middleware
+	rec := httptest.NewRecorder()
+	ref := resp.Fail(rec, req, http.StatusInternalServerError, "x", errors.New("e"))
+	if !refRe.MatchString(ref) {
+		t.Fatalf("fallback ref %q is not a fresh 8-hex ref", ref)
 	}
 }
