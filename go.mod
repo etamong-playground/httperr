@@ -1,3 +1,3 @@
-module gitlab.com/etamong-lab/shared/libs/httperr
+module github.com/etamong-playground/httperr
 
 go 1.23

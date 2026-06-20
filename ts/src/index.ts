@@ -1,6 +1,6 @@
 // @etamong-lab/httperr — the etamong-lab cross-app error convention for TS/JS.
 //
-// Mirrors the Go lib (gitlab.com/etamong-lab/shared/libs/httperr): a handler
+// Mirrors the Go lib (github.com/etamong-playground/httperr): a handler
 // reports a failure once and gets back a clean {error, ref} response to send to
 // the client, while one structured JSON line is logged under the same 8-hex ref.
 // The ref is the join key between a user's report and the exact log line; Loki

@@ -1,8 +1,10 @@
+> Canonical: https://github.com/etamong-playground/httperr
+
 # httperr — etamong-lab cross-app error convention
 
 This repo holds the convention in **two stacks** (same contract, same log line):
 
-- **Go** (this README): `go get gitlab.com/etamong-lab/shared/libs/httperr` — see below.
+- **Go** (this README): `go get github.com/etamong-playground/httperr` — see below.
 - **TypeScript/JS**: `@etamong-lab/httperr`, published from [`ts/`](ts/) (Node, Cloudflare
   Workers, browser). Use `fail()` server-side and `formatError()` in frontends.
 
@@ -21,11 +23,10 @@ the wiki concept `cross-app-error-view`.
 ## Install
 
 ```sh
-go get gitlab.com/etamong-lab/shared/libs/httperr
+go get github.com/etamong-playground/httperr
 ```
 
-Private module — consumers set `GOPRIVATE=gitlab.com/etamong-lab/*` and have git
-credentials for gitlab.com.
+Public module — no `GOPRIVATE` needed.
 
 ## Use
 
